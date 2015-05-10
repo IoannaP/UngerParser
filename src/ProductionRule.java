@@ -14,4 +14,8 @@ public class ProductionRule {
   public String getRightHandSide() {
     return rightHandSide;
   }
+
+  public boolean equals(ProductionRule rule) {
+    return rule.leftHandSide == leftHandSide && rule.rightHandSide == rightHandSide;
+  }
 }

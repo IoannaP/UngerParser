@@ -19,11 +19,11 @@ public class Parser {
   }
 
   public List<Stack<ProductionRule>> parse() {
-    tryRulesFor('S', 0, word.length());
+    tryAllRulesFor(grammar.getStartSymbol(), 0, word.length());
     return parsingForest;
   }
 
-  private void tryRulesFor(char symbol, int position, int length) {
+  private void tryAllRulesFor(char symbol, int position, int length) {
     List<ProductionRule> rulesForSymbol = grammar.getRulesForSymbol(symbol);
     for (int i = 0; i < rulesForSymbol.size(); i++) {
       tryRule(rulesForSymbol.get(i), position, length);
@@ -32,9 +32,8 @@ public class Parser {
 
   private void tryRule(ProductionRule rule, int position, int length) {
     Goal goal = new Goal(rule, position, length);
-    if (!isToBeAvoided(goal) && !knownGoalSucceeds(goal)) {
+    if (!isToBeAvoided(goal)) {
       operationalStack.push(new OperationalTuple(goal, -1, 0));
-      startNewKnownGoal(goal);
       derivationStack.push(rule);
       doTopOfStack();
       derivationStack.pop();
@@ -43,69 +42,54 @@ public class Parser {
   }
 
   private void doTopOfStack() {
-    OperationalTuple operationalTop = operationalStack.peek();
-    Goal goal = operationalTop.getGoal();
-    char nextRhsSymbol = goal.getRule().getRightHandSide().charAt(operationalTop.getRhsPosition() + 1);
+    OperationalTuple s = operationalStack.peek();
+    Goal goal = s.getGoal();
+    char nextRhsSymbol = goal.getRule().getRightHandSide().charAt(s.getRhsPosition() + 1);
     if (nextRhsSymbol == '$') {
-      if (operationalTop.getInRec() == goal.getLength()) {
+      if (s.getInRec() == goal.getLength()) {
         doNextOnStack();
       }
-    } else if (operationalTop.getInRec() <  goal.getLength() && nextRhsSymbol == word.charAt(goal.getPosition() + operationalTop.getInRec())) {
-      operationalTop.incrementRhsPosition(1);
-      operationalTop.incrementInRec(1);
+    } else if (s.getInRec() <  goal.getLength() && nextRhsSymbol == word.charAt(goal.getPosition() + s.getInRec())) {
+      s.incrementRhsPosition(1);
+      s.incrementInRec(1);
       doTopOfStack();
-      operationalTop.decrementRhsPosition(1);
-      operationalTop.decrementInRec(1);
-    } else if (isNonTerminal(nextRhsSymbol)) {
-      tryAllLengthsFor(nextRhsSymbol, goal.getPosition() + operationalTop.getInRec(), goal.getLength() - operationalTop.getInRec());
+      s.decrementRhsPosition(1);
+      s.decrementInRec(1);
+    } else if (grammar.isNonTerminal(nextRhsSymbol)) {
+      tryAllLengthsFor(nextRhsSymbol, goal.getPosition() + s.getInRec(), goal.getLength() - s.getInRec());
     }
   }
 
   private void doNextOnStack() {
-    recordKnownParsing();
     OperationalTuple s = operationalStack.peek();
     operationalStack.pop();
     if (operationalStack.empty()) {
-      parsingForest.add(derivationStack);
+      parsingForest.add((Stack<ProductionRule>)derivationStack.clone());
     } else {
-      s.incrementRhsPosition(1);
-      s.incrementInRec(s.getGoal().getLength());
+      OperationalTuple s1 = operationalStack.peek();
+      s1.incrementRhsPosition(1);
+      s1.incrementInRec(s.getGoal().getLength());
       doTopOfStack();
-      s.decrementInRec(s.getGoal().getLength());
-      s.decrementRhsPosition(1);
+      s1.decrementInRec(s.getGoal().getLength());
+      s1.decrementRhsPosition(1);
     }
     operationalStack.push(s);
   }
 
   private void tryAllLengthsFor(char nonTerminal, int position, int length) {
     for (int i = 0; i <= length; i++) {
-      tryRulesFor(nonTerminal, position, i);
+      tryAllRulesFor(nonTerminal, position, i);
     }
   }
 
   private boolean isToBeAvoided(Goal goal) {
     for (int i = 0; i < operationalStack.size(); i++) {
-      if (operationalStack.get(i).getGoal() == goal) {
+      if (operationalStack.get(i).getGoal().equals(goal) == true) {
         return true;
       }
     }
     return false;
   }
 
-  private void recordKnownParsing() {
-    /* used for optimization */
-  }
 
-  private boolean knownGoalSucceeds(Goal goal) {
-    /* used for optimization */
-    return false;
-  }
-
-  private void startNewKnownGoal(Goal goal) {
-    /* used for optimization */
-  }
-
-  private boolean isNonTerminal(char symbol) {
-    return symbol >= 'A' && symbol <= 'Z';
-  }
 }

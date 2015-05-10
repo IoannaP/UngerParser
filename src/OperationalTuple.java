@@ -34,6 +34,6 @@ public class OperationalTuple {
   }
 
   public void decrementInRec(int value) {
-    rhsPosition -= value;
+    inRec -= value;
   }
 }

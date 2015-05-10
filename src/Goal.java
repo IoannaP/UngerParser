@@ -19,4 +19,8 @@ public class Goal {
   public int getLength() {
     return length;
   }
+
+  public boolean equals(Goal goal) {
+    return goal.position == position && goal.length == length && goal.rule.equals(rule);
+  }
 }
